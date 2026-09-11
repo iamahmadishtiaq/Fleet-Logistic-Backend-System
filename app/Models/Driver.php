@@ -6,6 +6,7 @@ use App\Enums\DriverStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Override;
+use Illuminate\Support\Facades\Storage;
 
 class Driver extends Model
 {
@@ -28,5 +29,12 @@ class Driver extends Model
             'status' => DriverStatus::class,
             'lisence_expires_at' => 'date',
         ];
+    }
+
+    public function getDocumentUrlAttribute(): ?string
+    {
+        return $this->license_document
+        ? url(Storage::url($this->license_document))
+        : null;
     }
 }
