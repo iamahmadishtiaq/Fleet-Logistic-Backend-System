@@ -27,8 +27,8 @@ class StoreDriverRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'string', 'max:20', 'unique:drivers,phone'],
-            'cnic' => ['required', 'string', 'max:15', 'uniuq:drivers,cnic'],
-            'license_number' => ['required', 'string', 'max;30', 'unique:drivers,license'],
+            'cnic' => ['required', 'string', 'max:15', 'unique:drivers,cnic'],
+            'license_number' => ['required', 'string', 'max:30', 'unique:drivers,license_number'],
             'license_expires_at' => ['required', 'date', 'after:today'],
             'license_document' => ['nullable', 'file', 'mimes:jpg,png,jpeg,pdf', 'max:5120'],
             'status' => ['nullable', Rule::enum(DriverStatus::class)],

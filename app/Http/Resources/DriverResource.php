@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Carbon\Carbon;
 
 class DriverResource extends JsonResource
 {
@@ -14,6 +15,11 @@ class DriverResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $expiresAt = $this->license_expires_at instanceof Carbon ? $this->license_expires_at : ($this->license_expires_at ? Carbon::parse($this->license_expires_at) : null);
+
+        // Status string ya enum nikaalna
+        $statusValue = $this->status instanceof \BackedEnum ? $this->status->value : ($this->status ?? 'available');
+
         return [
             'id' => $this->id,
             'name' => $this->name,

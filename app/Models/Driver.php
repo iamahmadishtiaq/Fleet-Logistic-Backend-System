@@ -27,7 +27,7 @@ class Driver extends Model
     {
         return [
             'status' => DriverStatus::class,
-            'lisence_expires_at' => 'date',
+            'license_expires_at' => 'date',
         ];
     }
 
