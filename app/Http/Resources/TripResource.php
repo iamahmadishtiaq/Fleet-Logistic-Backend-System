@@ -32,6 +32,7 @@ class TripResource extends JsonResource
                 'distance_covered' => $this->end_odometer ? ($this->end_odometer - $this->start_odometer): null,
             ],
             'status' => $statusValue,
+            'cancellation_reason' => $this->cancellation_reason,
             'vehicle' => new VehicleResource($this->whenLoaded('vehicle')),
             'driver' => new DriverResource($this->whenLoaded('driver')),
             'started_at' => $this->started_at?->toISOString(),

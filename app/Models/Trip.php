@@ -23,6 +23,7 @@ class Trip extends Model
         'start_odometer',
         'end_odometer',
         'status',
+        'cancellation_reason',
         'started_at',
         'completed_at',
     ];
