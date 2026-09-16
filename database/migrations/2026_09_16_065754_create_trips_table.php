@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('destination');
             $table->text('cargo_details')->nullable();
             $table->unsignedBigInteger('start_odometer');
-            $table->unsignedBigInteger('end_odometer');
+            $table->unsignedBigInteger('end_odometer')->nullable();
             $table->string('status')->default(TripStatus::SCHEDULED->value);
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
