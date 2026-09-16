@@ -13,3 +13,4 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('vehicles', VehicleController::class);
 Route::apiResource('drivers', DriverController::class);
 Route::apiResource('trips', TripController::class);
+Route::post('trips/{trip}/cancel', [TripController::class, 'cancel']);

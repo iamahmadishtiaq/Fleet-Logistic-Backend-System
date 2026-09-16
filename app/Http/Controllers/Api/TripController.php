@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use GuzzleHttp\Psr7\Query;
 use Illuminate\Http\Request;
+use Psy\Util\Json;
 
 class TripController extends Controller
 {
@@ -105,6 +106,46 @@ class TripController extends Controller
                 'data' => new TripResource($trip->load(['vehicle', 'driver'])),
             ]);
         }
+    }
+
+    // POST /api/trips/{trip}/cancel
+    public function cancel(Request $request, Trip $trip): JsonResponse
+    {
+        if ($trip->status === \App\Enums\TripStatus::COMPLETED) {
+            return response()->json([
+                'message' => 'A completed trip cannot be cancelled.',
+            ], 422);
+        }
+
+        if ($trip->status === \App\Enums\TripStatus::CANCELLED) {
+            return response()->json([
+                'message' => 'This trip is already cancelled.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($trip, $validated) {
+            $trip->update([
+                'status' => \App\Enums\TripStatus::CANCELLED,
+                'cancellation_reason' => $validated['reason'],
+            ]);
+
+            $trip->vehicle->update([
+                'status' => \App\Enums\VehicleStatus::AVAILABLE,
+            ]);
+
+            $trip->driver->update([
+                'status' => \App\Enums\DriverStatus::AVAILABLE,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Trip cancelled successfully. Vehicle and driver are now available.',
+            'data' => new TripResource($trip->load(['vehicle', 'driver'])),
+        ], 200);
     }
 
     /**
