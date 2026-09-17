@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\TripStatus;
 use App\Events\TripCompleted;
 use App\Events\TripDispatched;
+use App\Events\TripCancelled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Resources\TripResource;
@@ -132,13 +133,7 @@ class TripController extends Controller
                 'cancellation_reason' => $validated['reason'],
             ]);
 
-            $trip->vehicle->update([
-                'status' => \App\Enums\VehicleStatus::AVAILABLE,
-            ]);
-
-            $trip->driver->update([
-                'status' => \App\Enums\DriverStatus::AVAILABLE,
-            ]);
+            TripCancelled::dispatch($trip);
         });
 
         return response()->json([
