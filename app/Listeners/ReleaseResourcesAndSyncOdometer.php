@@ -24,11 +24,19 @@ class ReleaseResourcesAndSyncOdometer
     public function handle(TripCompleted $event): void
     {
         $trip = $event->trip;
+        $vehicle = $trip->vehicle;
 
-        $trip->vehicle->update([
-            'odometer' => $trip->end_odometer ?? $trip->vehicle_odometer,
-            'status' => VehicleStatus::AVAILABLE,
-        ]);
+        if ($trip->end_odometer){
+            $vehicle->odometer = $trip->end_odometer;
+        }
+
+        if ($vehicle->requiresMaintenance(10000)) {
+            $vehicle->status = VehicleStatus::MAINTENANCE;
+        }else {
+            $vehicle->status = VehicleStatus::AVAILABLE;
+        }
+
+        $vehicle->save();
 
         $trip->driver->update([
             'status' => DriverStatus::AVAILABLE,

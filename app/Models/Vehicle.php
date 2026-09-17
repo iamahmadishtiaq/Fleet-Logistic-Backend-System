@@ -20,6 +20,7 @@ class Vehicle extends Model
         'year',
         'type',
         'odometer',
+        'last_service_odometer',
         'status',
         'fitness_expires_at',
     ];
@@ -33,5 +34,10 @@ class Vehicle extends Model
             'odometer' => 'integer',
             'year' => 'integer',
         ];
+    }
+
+    public function requiresMaintenance(int $intervalKm = 10000): bool
+    {
+        return ($this->odometer - $this->last_service_odometer) >= $intervalKm;
     }
 }

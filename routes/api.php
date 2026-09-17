@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Core Fleet Management
     Route::apiResource('vehicles', VehicleController::class);
+    Route::post('vehicles/{vehicle}/complete-service', [VehicleController::class, 'completeService']);
     Route::apiResource('drivers', DriverController::class);
 
     // Trip Lifecycle Endpoints

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\VehicleStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Vehicle;
@@ -76,6 +77,19 @@ class VehicleController extends Controller
 
         return response()->json([
             'message' => 'Vehicle deleted successfully',
+        ]);
+    }
+
+    public function completeService(Vehicle $vehicle): JsonResponse
+    {
+        $vehicle->update([
+            'last_service_odometer' => $vehicle->odometer,
+            'status' => VehicleStatus::AVAILABLE,
+        ]);
+
+        return response()->json([
+            'message' => 'Vehicle service recorded successfully. Vehicle is now available',
+            'data' => new VehicleResource($vehicle),
         ]);
     }
 }
