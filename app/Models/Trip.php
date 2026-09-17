@@ -7,6 +7,7 @@ use App\Enums\TripStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 use Override;
 
 class Trip extends Model
@@ -49,4 +50,37 @@ class Trip extends Model
     {
         return $this->belongsTo(Driver::class);
     }
+
+    public function scopeFilter(Builder $query, array $filters): Builder
+    {
+        return $query
+            ->when($filters['status'] ?? null, function ($q, $status) {
+                $q->where('status', $status);
+            })
+
+            ->when($filters['vehicle_id'] ?? null, function ($q, $vehicleId) {
+                $q->where('vehicle_id', $vehicleId);
+            })
+
+            ->when($filters['driver_id'] ?? null, function ($q, $driverId) {
+                $q->where('driver_id', $driverId);
+            })
+
+            ->when($filters['from_date'] ?? null, function ($q, $fromDate){
+                $q->where('started_at', '>=', $fromDate);
+            })
+
+            ->when($filters['to_date'] ?? null, function ($q, $toDate){
+                $q->where('started_at', '<=', $toDate);          
+            })
+
+            ->when($filters['search'] ?? null, function ($q, $search){
+                $q->where(function ($subQ) use ($search) {
+                    $subQ->where('trip_number', 'like', "%{$search}%")
+                        ->orWhere('origin', 'like', "%{$search}%")
+                        ->orWhere('destination', 'like', "%{$search}%");
+                });
+            });
+    }
+
 }

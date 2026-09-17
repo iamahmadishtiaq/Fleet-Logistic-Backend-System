@@ -26,7 +26,14 @@ class TripController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $trips = Trip::with(['vehicle', 'driver'])
-            ->when($request->query('status'), fn($q, $s) => $q->where('status', $s))
+            ->filter($request->only([
+                'status',
+                'vehicle_id',
+                'driver_id',
+                'from_date',
+                'to_date',
+                'search'
+            ]))
             ->latest()
             ->paginate(15);
 
