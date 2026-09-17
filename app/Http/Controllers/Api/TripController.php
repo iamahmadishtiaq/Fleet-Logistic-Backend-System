@@ -2,22 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\DriverStatus;
 use App\Enums\TripStatus;
-use App\Enums\VehicleStatus;
+use App\Events\TripCompleted;
+use App\Events\TripDispatched;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Resources\TripResource;
 use App\Models\Driver;
 use App\Models\Trip;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Http\Controllers\Controller;
-use GuzzleHttp\Psr7\Query;
-use Illuminate\Http\Request;
-use Psy\Util\Json;
 
 class TripController extends Controller
 {
@@ -51,28 +49,30 @@ class TripController extends Controller
                 'destination' => $request->destination,
                 'cargo_details' => $request->cargo_details,
                 'start_odometer' => $vehicle->odometer,
-                'status' => TripStatus::IN_TRANSIT->value ?? 'scheduled',
+                'status' => TripStatus::IN_TRANSIT,
                 'started_at' => now(),
             ]);
 
-            $vehicle->update(['status' => VehicleStatus::ON_TRIP]);
-            $driver->update(['status' => DriverStatus::ON_TRIP]);
+            // Event fire karein: Listener status update karega
+            TripDispatched::dispatch($trip);
 
             return $trip;
         });
 
         return response()->json([
-            'message' => 'Trip dispatched successfully',
+            'message' => 'Trip dispatched successfully.',
             'data' => new TripResource($trip->load(['vehicle', 'driver'])),
-        ]);
+        ], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Trip $trip): JsonResponse
     {
-        //
+        return response()->json([
+            'data' => new TripResource($trip->load(['vehicle', 'driver'])),
+        ]);
     }
 
     /**
@@ -80,44 +80,43 @@ class TripController extends Controller
      */
     public function update(Request $request, Trip $trip): JsonResponse
     {
-        $validated = $request->validate([
+        $request->validate([
             'end_odometer' => ['nullable', 'integer', 'gt:' . $trip->start_odometer],
             'status' => ['nullable', 'string'],
         ]);
 
         if ($request->filled('end_odometer')) {
-            $trip->update([
-                'end_odometer' => $request->end_odometer,
-                'status' => TripStatus::COMPLETED,
-                'completed_at' => now(),
-            ]);
+            DB::transaction(function () use ($request, $trip) {
+                $trip->update([
+                    'end_odometer' => $request->end_odometer,
+                    'status' => TripStatus::COMPLETED,
+                    'completed_at' => now(),
+                ]);
 
-            $trip->vehicle->update([
-                'odometer' => $request->end_odometer,
-                'status' => VehicleStatus::AVAILABLE,
-            ]);
-
-            $trip->driver->update([
-                'status' => DriverStatus::AVAILABLE,
-            ]);
-
-            return response()->json([
-                'message' => 'Trip updated successfully',
-                'data' => new TripResource($trip->load(['vehicle', 'driver'])),
-            ]);
+                // Event fire karein: Listener odometer aur statuses sync karega
+                TripCompleted::dispatch($trip);
+            });
         }
+
+        // Return if block se bahar taake "none returned" error na aaye
+        return response()->json([
+            'message' => 'Trip updated successfully.',
+            'data' => new TripResource($trip->load(['vehicle', 'driver'])),
+        ]);
     }
 
-    // POST /api/trips/{trip}/cancel
+    /**
+     * Cancel an active trip.
+     */
     public function cancel(Request $request, Trip $trip): JsonResponse
     {
-        if ($trip->status === \App\Enums\TripStatus::COMPLETED) {
+        if ($trip->status === TripStatus::COMPLETED) {
             return response()->json([
                 'message' => 'A completed trip cannot be cancelled.',
             ], 422);
         }
 
-        if ($trip->status === \App\Enums\TripStatus::CANCELLED) {
+        if ($trip->status === TripStatus::CANCELLED) {
             return response()->json([
                 'message' => 'This trip is already cancelled.',
             ], 422);
@@ -129,7 +128,7 @@ class TripController extends Controller
 
         DB::transaction(function () use ($trip, $validated) {
             $trip->update([
-                'status' => \App\Enums\TripStatus::CANCELLED,
+                'status' => TripStatus::CANCELLED,
                 'cancellation_reason' => $validated['reason'],
             ]);
 
@@ -151,8 +150,12 @@ class TripController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Trip $trip): JsonResponse
     {
-        //
+        $trip->delete();
+
+        return response()->json([
+            'message' => 'Trip deleted successfully.',
+        ]);
     }
 }
