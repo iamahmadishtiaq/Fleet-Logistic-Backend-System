@@ -6,13 +6,25 @@ use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\TripController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\AuthController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::post('register', [AuthController::class, 'register']);
+Route::post('login', [AuthController::class, 'login']);
 
-Route::apiResource('vehicles', VehicleController::class);
-Route::apiResource('drivers', DriverController::class);
-Route::apiResource('trips', TripController::class);
-Route::post('trips/{trip}/cancel', [TripController::class, 'cancel']);
-Route::get('dashboard/stats', [DashboardController::class, 'stats']);
+Route::middleware('auth:sanctum')->group(function () {
+
+    //  Dashboard
+    Route::get('dashboard/stats', [DashboardController::class, 'stats']);
+
+    // Auth Actions
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::get('me', [AuthController::class, 'me']);
+
+    // Core Fleet Management
+    Route::apiResource('vehicles', VehicleController::class);
+    Route::apiResource('drivers', DriverController::class);
+
+    // Trip Lifecycle Endpoints
+    Route::apiResource('trips', TripController::class);
+    Route::post('trips/{trip}/cancel', [TripController::class, 'cancel']);
+});
