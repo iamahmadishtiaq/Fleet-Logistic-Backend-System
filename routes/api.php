@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
 
     // Core Fleet Management
+    Route::get('vehicles/alerts/maintenance', [VehicleController::class, 'maintenanceAlerts']);
     Route::apiResource('vehicles', VehicleController::class);
     Route::post('vehicles/{vehicle}/complete-service', [VehicleController::class, 'completeService']);
     Route::apiResource('drivers', DriverController::class);

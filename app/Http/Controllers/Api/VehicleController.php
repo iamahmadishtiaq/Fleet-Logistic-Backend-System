@@ -92,4 +92,20 @@ class VehicleController extends Controller
             'data' => new VehicleResource($vehicle),
         ]);
     }
+
+    public function maintenanceAlerts(): JsonResponse
+    {
+        $criticalVechicles = Vehicle::whereRaw('(odometer - last_service_odometer) >= 10000')->get();
+        $warningVehicles = Vehicle::whereRaw('(odometer - last_service_odometer) BETWEEN 9000 AND 9999')->get();
+        $expiringFitness = Vehicle::whereDate('fitness_expires_at', '<=', now()->addDays(30))->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'critical_service_required' => VehicleResource::collection($criticalVechicles),
+                'approaching_service' => VehicleResource::collection($warningVehicles),
+                'fitness_action_needed' => VehicleResource::collection($expiringFitness), 
+            ],
+        ]);
+    }
 }
