@@ -88,27 +88,47 @@ class TripController extends Controller
      */
     public function update(Request $request, Trip $trip): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'end_odometer' => ['nullable', 'integer', 'gt:' . $trip->start_odometer],
+            'fuel_rate_per_liter' => ['nullable', 'numeric', 'min:1'],
+            'toll_tax' => ['nullable', 'numeric', 'min:0'],
+            'misc_expense' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', 'string'],
         ]);
 
         if ($request->filled('end_odometer')) {
-            DB::transaction(function () use ($request, $trip) {
+            DB::transaction(function () use ($validated, $trip){
+                $startOdo = (int) $trip->start_odometer;
+                $endOdo = (int) $validated['end_odometer'];
+                $distanceCovered = $endOdo - $startOdo;
+
+                $fuelAverage = (float) ($trip->vehicle->fuel_average ?: 8.00);
+                $fuelRate = (float) ($validated['fuel_rate_per_liter'] ?? 270.00);
+                $tollTax = (float) ($validated['toll_tax'] ?? 0);
+                $miscExpenses = (float) ($validated['misc_expenses'] ?? 0);
+
+                $fuelConsumedLiters = $distanceCovered > 0 ? ($distanceCovered / $fuelAverage) : 0;
+                $fuelCost = round($fuelConsumedLiters * $fuelRate, 2);
+                $totalCost = round($fuelCost + $tollTax + $miscExpenses, 2);
+
                 $trip->update([
-                    'end_odometer' => $request->end_odometer,
+                    'end_odometer' => $endOdo,
+                    'fuel_rate_per_liter' => $fuelRate,
+                    'toll_tax' => $tollTax,
+                    'misc_expenses' => $miscExpenses,
+                    'fuel_cost' => $fuelCost,
+                    'total_cost' => $totalCost,
                     'status' => TripStatus::COMPLETED,
                     'completed_at' => now(),
                 ]);
 
-                // Event fire karein: Listener odometer aur statuses sync karega
                 TripCompleted::dispatch($trip);
             });
         }
 
         // Return if block se bahar taake "none returned" error na aaye
         return response()->json([
-            'message' => 'Trip updated successfully.',
+            'message' => 'Trip completed and expense calculated successfully.',
             'data' => new TripResource($trip->load(['vehicle', 'driver'])),
         ]);
     }

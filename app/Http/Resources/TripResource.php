@@ -38,6 +38,13 @@ class TripResource extends JsonResource
             'started_at' => $this->started_at?->toISOString(),
             'completed_at' => $this->completed_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
+            'expenses' => [
+                'fuel_rate_per_liter' => (float) $this->fuel_rate_per_liter,
+                'fuel_cost' => (float) $this->fuel_cost,
+                'toll_tax' => (float) $this->toll_tax,
+                'misc_expenses' => (float) $this->misc_expenses,
+                'total_trip_cost' => (float) $this->total_cost,
+            ],
         ];
     }
 }

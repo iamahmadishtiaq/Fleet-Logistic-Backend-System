@@ -35,6 +35,9 @@ class DashboardController extends Controller
             ->selectRaw('SUM(end_odometer - start_odometer) as total_km')
             ->value('total_km') ?? 0;
 
+        $totalExpenses = Trip::where('status', TripStatus::COMPLETED)
+            ->sum('total_cost');
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -56,6 +59,7 @@ class DashboardController extends Controller
                 ],
                 'fleet_performance' => [
                     'total_distance_covered_km' => (int) $totalDistance,
+                    'total_spent_fuel_and_logistics' => (float) $totalExpenses,
                 ],
             ],
         ], 200);

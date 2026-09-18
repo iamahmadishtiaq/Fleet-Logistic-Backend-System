@@ -20,6 +20,7 @@ class Vehicle extends Model
         'year',
         'type',
         'odometer',
+        'fuel_average',
         'last_service_odometer',
         'status',
         'fitness_expires_at',
