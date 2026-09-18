@@ -18,8 +18,8 @@ return new class extends Migration
         Schema::table('trips', function (Blueprint $table) {
             $table->decimal('fuel_rate_per_liter', 8, 2)->nullable()->after('end_odometer');
             $table->decimal('toll_tax', 8, 2)->default(0)->after('fuel_rate_per_liter');
-            $table->decimal('misc_expense', 8, 2)->default(0)->after('toll_tax');
-            $table->decimal('fuel_cost', 10, 2)->default(0)->after('misc_expense');
+            $table->decimal('misc_expenses', 8, 2)->default(0)->after('toll_tax');
+            $table->decimal('fuel_cost', 10, 2)->default(0)->after('misc_expenses');
             $table->decimal('total_cost', 10, 2)->default(0)->after('fuel_cost');
         });
     }
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->dropColumn([
                 'fuel_rate_per_liter',
                 'toll_tax',
-                'misc_expense',
+                'misc_expenses',
                 'fuel_cost',
                 'total_cost'
             ]);

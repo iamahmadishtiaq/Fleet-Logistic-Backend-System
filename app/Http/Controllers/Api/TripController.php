@@ -92,7 +92,7 @@ class TripController extends Controller
             'end_odometer' => ['nullable', 'integer', 'gt:' . $trip->start_odometer],
             'fuel_rate_per_liter' => ['nullable', 'numeric', 'min:1'],
             'toll_tax' => ['nullable', 'numeric', 'min:0'],
-            'misc_expense' => ['nullable', 'numeric', 'min:0'],
+            'misc_expenses' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', 'string'],
         ]);
 

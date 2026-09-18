@@ -25,7 +25,7 @@ class Trip extends Model
         'end_odometer',
         'fuel_rate_per_liter',
         'toll_tax',
-        'misc_expense',
+        'misc_expenses',
         'fuel_cost',
         'total_cost',
         'status',
