@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TripExportController;
 use App\Http\Controllers\Api\TripLocationController;
+use App\Http\Controllers\Api\FleetTrackingController;
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
@@ -38,6 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('trips/{trip}/cancel', [TripController::class, 'cancel'])->middleware('permission:cancel-trips');
     Route::post('trips/{trip}/location', [TripLocationController::class, 'store']);
     Route::get('trips/{trip}/trail', [TripLocationController::class, 'history']);
+
+    // Live Map
+    Route::get('fleet/live-map', [FleetTrackingController::class, 'liveMap']);
 
     // Admin-Only Asset Control
     Route::middleware('role:admin')->group(function () {
