@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+
+        $this->call(RolesAndPermissionsSeeder::class);
+
         // 1. Default Admin / Dispatcher Account
         User::firstOrCreate(
             ['email' => 'admin@fleet.test'],
