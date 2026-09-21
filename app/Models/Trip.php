@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Override;
 
 class Trip extends Model
@@ -86,6 +88,16 @@ class Trip extends Model
                         ->orWhere('destination', 'like', "%{$search}%");
                 });
             });
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(TripLocation::class)->latest('recorded_at');
+    }
+
+    public function latestLocation(): HasOne
+    {
+        return $this->hasOne(TripLocation::class)->latestOfMany('recorded_at');
     }
 
 }

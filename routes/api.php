@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\TripController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TripExportController;
+use App\Http\Controllers\Api\TripLocationController;
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
@@ -35,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('trips', [TripController::class, 'store'])->middleware('permission:dispatch-trips');
     Route::put('trips/{trip}', [TripController::class, 'update'])->middleware('permission:complete-trips');
     Route::post('trips/{trip}/cancel', [TripController::class, 'cancel'])->middleware('permission:cancel-trips');
+    Route::post('trips/{trip}/location', [TripLocationController::class, 'store']);
+    Route::get('trips/{trip}/trail', [TripLocationController::class, 'history']);
 
     // Admin-Only Asset Control
     Route::middleware('role:admin')->group(function () {
