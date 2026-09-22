@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TripExportController;
 use App\Http\Controllers\Api\TripLocationController;
 use App\Http\Controllers\Api\FleetTrackingController;
+use App\Http\Controllers\Api\IncidentController;
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
@@ -42,6 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Live Map
     Route::get('fleet/live-map', [FleetTrackingController::class, 'liveMap']);
+
+    // Incident Management
+    Route::post('trips/{trip}/incidents', [IncidentController::class, 'store']);
+    Route::patch('incidents/{incident}/resolve', [IncidentController::class, 'resolve']);
 
     // Admin-Only Asset Control
     Route::middleware('role:admin')->group(function () {

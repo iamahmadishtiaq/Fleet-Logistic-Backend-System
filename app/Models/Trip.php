@@ -100,4 +100,9 @@ class Trip extends Model
         return $this->hasOne(TripLocation::class)->latestOfMany('recorded_at');
     }
 
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class)->latest();
+    }
+
 }
