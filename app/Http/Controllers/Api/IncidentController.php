@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\Trip;
 use App\Models\Incident;
 use Illuminate\Http\JsonResponse;
+use App\Models\User;
+use App\Notifications\CriticalIncidentReported;
+use Illuminate\Support\Facades\Notification;
 
 class IncidentController extends Controller
 {
@@ -32,6 +35,11 @@ class IncidentController extends Controller
             'estimated_delay_hours' => $validated['estimated_delay_hours'] ?? 0,
             'status' => 'open',
         ]);
+
+        if (in_array($incident->severity, ['high', 'critical'])) {
+            $admins = User::role('admin')->get();
+            Notification::send($admins, new CriticalIncidentReported($incident));
+        }
 
         return response()->json([
             'message' => 'Incident reported successfully',
