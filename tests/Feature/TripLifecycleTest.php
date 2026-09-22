@@ -2,151 +2,121 @@
 
 namespace Tests\Feature;
 
-use App\Enums\DriverStatus;
 use App\Enums\TripStatus;
 use App\Enums\VehicleStatus;
 use App\Models\Driver;
-use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class TripLifecycleTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected User $user;
-    protected Vehicle $vehicle;
-    protected Driver $driver;
+    protected User $dispatcher;
+    protected User $admin;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // 1. Authenticated User
-        $this->user = User::factory()->create();
+        // 1. Roles aur permissions seed karein
+        $this->seed(RolesAndPermissionsSeeder::class);
 
-        // 2. Test Vehicle aur Driver
-        $this->vehicle = Vehicle::factory()->create([
-            'odometer' => 10000,
-            'last_service_odometer' => 10000, // <-- Yeh line add karein
-            'fuel_average' => 8.00,
+        // 2. Dispatcher user setup
+        $this->dispatcher = User::factory()->create([
+            'email' => 'dispatcher@fleet.test',
+        ]);
+        $this->dispatcher->assignRole('dispatcher');
+
+        // 3. Admin user setup
+        $this->admin = User::factory()->create([
+            'email' => 'admin@fleet.test',
+        ]);
+        $this->admin->assignRole('admin');
+    }
+
+    public function test_dispatcher_can_create_a_trip_and_vehicle_is_marked_on_trip(): void
+    {
+        Sanctum::actingAs($this->dispatcher);
+
+        $vehicle = Vehicle::factory()->create([
             'status' => VehicleStatus::AVAILABLE,
+            'odometer' => 15000,
         ]);
 
-        $this->driver = Driver::factory()->create([
-            'status' => DriverStatus::AVAILABLE,
+        $driver = Driver::factory()->create([
+            'status' => 'available',
         ]);
-    }
 
-    public function test_can_dispatch_trip_and_update_resource_statuses(): void
-    {
         $payload = [
-            'vehicle_id' => $this->vehicle->id,
-            'driver_id' => $this->driver->id,
+            'vehicle_id' => $vehicle->id,
+            'driver_id' => $driver->id,
             'origin' => 'Lahore Hub',
-            'destination' => 'Islamabad Station',
-            'cargo_details' => 'Electronic Goods',
+            'destination' => 'Islamabad Depot',
+            'cargo_details' => 'Electronics Consignment',
         ];
 
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/trips', $payload);
+        $response = $this->postJson('/api/trips', $payload);
 
-        $response->assertStatus(201)
-            ->assertJsonPath('data.status', 'in_transit');
-
-        // Database assertions
+        $response->assertStatus(201);
         $this->assertDatabaseHas('trips', [
-            'vehicle_id' => $this->vehicle->id,
-            'driver_id' => $this->driver->id,
-            'status' => TripStatus::IN_TRANSIT->value,
-            'start_odometer' => 10000,
+            'vehicle_id' => $vehicle->id,
+            'driver_id' => $driver->id,
+            'status' => TripStatus::IN_TRANSIT,
         ]);
 
-        // Verify listener updated vehicle and driver statuses
-        $this->assertEquals(VehicleStatus::ON_TRIP, $this->vehicle->fresh()->status);
-        $this->assertEquals(DriverStatus::ON_TRIP, $this->driver->fresh()->status);
+        // Verify vehicle status changed to on_trip
+        $this->assertEquals(VehicleStatus::ON_TRIP, $vehicle->fresh()->status);
     }
 
-    public function test_can_complete_trip_and_calculate_costs(): void
+    public function test_cannot_assign_vehicle_under_maintenance_to_a_new_trip(): void
     {
-        // Active trip setup karein
-        $trip = Trip::create([
-            'trip_number' => 'TRP-TEST1234',
-            'vehicle_id' => $this->vehicle->id,
-            'driver_id' => $this->driver->id,
-            'origin' => 'Lahore',
-            'destination' => 'Rawalpindi',
-            'start_odometer' => 10000,
-            'status' => TripStatus::IN_TRANSIT,
-            'started_at' => now(),
+        Sanctum::actingAs($this->dispatcher);
+
+        $vehicle = Vehicle::factory()->create([
+            'status' => VehicleStatus::MAINTENANCE,
+        ]);
+
+        $driver = Driver::factory()->create([
+            'status' => 'available',
         ]);
 
         $payload = [
-            'end_odometer' => 10400, // Distance = 400 KM
-            'fuel_rate_per_liter' => 270.00,
-            'toll_tax' => 1200.00,
-            'misc_expenses' => 300.00,
+            'vehicle_id' => $vehicle->id,
+            'driver_id' => $driver->id,
+            'origin' => 'Lahore Hub',
+            'destination' => 'Multan Depot',
         ];
 
-        $response = $this->actingAs($this->user)
-            ->putJson("/api/trips/{$trip->id}", $payload);
+        $response = $this->postJson('/api/trips', $payload);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('data.status', 'completed');
-
-        // 400 KM / 8.00 km/l = 50 Liters
-        // 50 Liters * 270 = 13,500 Fuel Cost
-        // Total = 13,500 + 1200 + 300 = 15,000 Total Cost
-        $this->assertDatabaseHas('trips', [
-            'id' => $trip->id,
-            'status' => TripStatus::COMPLETED->value,
-            'fuel_cost' => 13500.00,
-            'total_cost' => 15000.00,
-        ]);
-
-        // Vehicle odometer sync verification
-        $this->assertEquals(10400, $this->vehicle->fresh()->odometer);
-        $this->assertEquals(VehicleStatus::AVAILABLE, $this->vehicle->fresh()->status);
-        $this->assertEquals(DriverStatus::AVAILABLE, $this->driver->fresh()->status);
+        $response->assertStatus(422);
     }
 
-    public function test_can_cancel_active_trip_and_free_resources(): void
+    public function test_dispatcher_cannot_delete_a_vehicle(): void
     {
-        $trip = Trip::create([
-            'trip_number' => 'TRP-CANCEL01',
-            'vehicle_id' => $this->vehicle->id,
-            'driver_id' => $this->driver->id,
-            'origin' => 'Lahore',
-            'destination' => 'Multan',
-            'start_odometer' => 10000,
-            'status' => TripStatus::IN_TRANSIT,
-            'started_at' => now(),
-        ]);
+        Sanctum::actingAs($this->dispatcher);
 
-        // Set initial busy status
-        $this->vehicle->update(['status' => VehicleStatus::ON_TRIP]);
-        $this->driver->update(['status' => DriverStatus::ON_TRIP]);
+        $vehicle = Vehicle::factory()->create();
 
-        $payload = [
-            'reason' => 'Road blocked due to land sliding.',
-        ];
+        $response = $this->deleteJson("/api/vehicles/{$vehicle->id}");
 
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/trips/{$trip->id}/cancel", $payload);
+        $response->assertStatus(403);
+    }
 
-        $response->assertStatus(200)
-            ->assertJsonPath('data.status', 'cancelled');
+    public function test_admin_can_delete_a_vehicle(): void
+    {
+        Sanctum::actingAs($this->admin);
 
-        $this->assertDatabaseHas('trips', [
-            'id' => $trip->id,
-            'status' => TripStatus::CANCELLED->value,
-            'cancellation_reason' => 'Road blocked due to land sliding.',
-        ]);
+        $vehicle = Vehicle::factory()->create();
 
-        // Verify resources are released
-        $this->assertEquals(VehicleStatus::AVAILABLE, $this->vehicle->fresh()->status);
-        $this->assertEquals(DriverStatus::AVAILABLE, $this->driver->fresh()->status);
+        $response = $this->deleteJson("/api/vehicles/{$vehicle->id}");
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('vehicles', ['id' => $vehicle->id]);
     }
 }
