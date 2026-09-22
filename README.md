@@ -20,7 +20,7 @@ Database: MySQL / PostgreSQL
 Testing: PHPUnit / Pest
 
 1.Installation & Setup
-git clone https://github.com/your-username/fleet-logistics-backend.git
+git clone https://github.com/iamahmadishtiaq/fleet-logistics-backend.git
 cd fleet-logistics-backend
 
 2.Install Dependencies
