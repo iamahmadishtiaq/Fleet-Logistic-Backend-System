@@ -1,58 +1,98 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Fleet Logistics Backend System
+A production-ready, high-performance RESTful API engineered with Laravel 11, designed to streamline enterprise logistics, fleet asset management, trip dispatching, automated maintenance tracking, and real-time GPS telemetry ingestion.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Key Features
+1.RBAC & Granular Permissions: Role-based security powered by spatie/laravel-permission (Admin & Dispatcher roles).
+2.Trip Lifecycle Management: Automated asset status transitions (available → on_trip → completed), odometer validation, and trip expense aggregation.
+3.Automated Fleet Maintenance Auditing: CLI command (fleet:check-maintenance) with dynamic warning thresholds (default 9,000 KM) and fitness certificate tracking, integrated into the Laravel Scheduler.
+4.Memory-Efficient Financial Exports: Downloadable CSV reporting for completed trips and operational costs using chunked StreamedResponse.
+5.Real-Time GPS Telemetry: Sub-minute coordinate ping ingestion, route trail reconstructions, and a live map overview endpoint (/api/fleet/live-map).
+6.Incident & SOS Alerting: Real-time breakdown/accident logging with automated critical alert emails triggered via Laravel Notifications.
+7.API Throttling & Security: Tiered rate limiters separating brute-force auth protection from high-capacity GPS telemetry streams.
+8.Automated Testing: Comprehensive feature tests verifying trip lifecycles, role permissions, and edge cases.
 
-## About Laravel
+Tech Stack
+Framework: Laravel 13.x
+PHP Version: 8.2+
+Authentication: Laravel Sanctum
+Authorization: Spatie Laravel-Permission
+Database: MySQL / PostgreSQL
+Testing: PHPUnit / Pest
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+1.Installation & Setup
+git clone https://github.com/your-username/fleet-logistics-backend.git
+cd fleet-logistics-backend
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+2.Install Dependencies
+composer install
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+3.Environment Configuration
+Copy the .env.example file and configure your credentials:
+cp .env.example .env
+php artisan key:generate
 
-## Learning Laravel
+Set up your database and mail settings in .env:
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=fleet_logistics
+DB_USERNAME=root
+DB_PASSWORD=your_password
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS="alerts@fleetlogistics.com"
+MAIL_FROM_NAME="Fleet Logistics Alert System"
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+4.Run Migrations & Seeders
+Set up the database schema and initialize default roles, permissions, and test accounts:
+php artisan migrate --seed
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+5.Testing
+Run the automated feature test suite:
+php artisan test
 
-## Agentic Development
+6.Console Commands & Automation
+Maintenance Health Scan
+Scan all fleet vehicles for overdue maintenance intervals (10,000 KM hard limit) or upcoming threshold warnings:
+# Run with default threshold (9,000 KM)
+php artisan fleet:check-maintenance
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+# Run with custom threshold
+php artisan fleet:check-maintenance --threshold=8500
 
-```bash
-composer require laravel/boost --dev
+7.Scheduler Setup (Production Server)
+To run automated audits daily at 08:00 AM, add the following entry to your Linux server crontab:
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
 
-php artisan boost:install
-```
+API Reference
+Authentication
+Method,Endpoint,Description,Access
+POST,/api/login,Authenticate and obtain Bearer token,Public (Rate Limited)
+POST,/api/logout,Revoke current token,Authenticated
+GET,/api/me,Fetch authenticated user profile,Authenticated
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Fleet Assets & Drivers
+Method,Endpoint,Description,Access
+GET,/api/vehicles,List all vehicles,Authenticated
+POST,/api/vehicles,Register a new vehicle,Admin (manage-vehicles)
+DELETE,/api/vehicles/{id},Decommission vehicle,Admin (manage-vehicles)
+POST,/api/vehicles/{id}/complete-service,Reset odometer after maintenance,Admin
+GET,/api/drivers,List all drivers,Authenticated
 
-## Contributing
+Trips & Live Operations
+Method,Endpoint,Description,Access
+POST,/api/trips,Dispatch a new trip,"Dispatcher, Admin"
+PUT,/api/trips/{id},Complete trip & update odometer,"Dispatcher, Admin"
+POST,/api/trips/{id}/location,Ingest real-time GPS telemetry,Authenticated (Rate Limited)
+GET,/api/trips/{id}/trail,Fetch full GPS trail history,Authenticated
+GET,/api/fleet/live-map,Combined map coordinates for active trips,Authenticated
+POST,/api/trips/{id}/incidents,Log an emergency/breakdown,Authenticated
+PATCH,/api/incidents/{id}/resolve,Mark incident as resolved,"Dispatcher, Admin"
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Reports & Metrics
+Method,Endpoint,Description,Access
+GET,/api/dashboard/stats,High-level fleet KPIs,"Admin, Dispatcher"
+GET,/api/trips/export/csv,Stream completed trip expenses as CSV,Admin (view-financials)
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+License
+This project is open-source software licensed under the MIT License.
